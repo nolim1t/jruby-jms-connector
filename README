@@ -1,0 +1,10 @@
+This is a simple JRUBY Library for accessing JMS servers
+
+You will need the following files in your classpath (or JRUBY_CP):
+
+* connector-api-1.5.jat
+* imq.jar
+* jms.jar
+* imqjmsra.jar
+
+
