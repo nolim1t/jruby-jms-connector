@@ -1,9 +1,6 @@
 # JRUBY Queue Management 
 # This creates an entry onto a JMS Queue
 
-# To create a new queue entry called TEST
-# jruby -e "require 'class.jruby-jms.rb';c=JMS::Producer.new('MM.C360.P5');.c.Produce('TEST');"
-
 require "java"
 
 include_class "javax.jms.Session"
