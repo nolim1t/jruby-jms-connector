@@ -6,6 +6,7 @@
 
 
 require "java"
+require 'imqlibs.jar'
 
 include_class "javax.jms.Session"
 include_class "com.sun.messaging.ConnectionFactory"
@@ -13,20 +14,23 @@ include_class "com.sun.messaging.Queue"
 
 module JMS
 	# Class name: QueueManager
-	# Constructor parameters (queuename, server, port, username, password)
+	# Constructor parameters (queuename, properties_file)
 	# Instance Methods:
 	# Produce(msg) returns SUCCESS if successful
 	# Consume() returns MSG=<MSG> if successful
 	# Count() returns the length of the queue if successful
 	class QueueManager
-		def initialize(queuename='QUEUENAME', server='ADDR', port='7676', uid='admin', pwd='admin')
+		def initialize(queuename='QUEUENAME', properties_file='jms.properties')
 			begin
 				myConnFactory = ConnectionFactory.new
-				myConnFactory.setProperty("imqBrokerHostName", server)
-				myConnFactory.setProperty("imqBrokerHostPort", port)
-				myConnFactory.setProperty("imqDefaultUsername", uid)
-				myConnFactory.setProperty("imqDefaultPassword", pwd)
-				@myConn = myConnFactory.createConnection
+                properties = java.util::Properties.new
+                properties.load(java.io.FileInputStream.new(properties_file))
+				myConnFactory.setProperty("imqBrokerHostName", properties.getProperty("com.bt.jms.servername"))
+				myConnFactory.setProperty("imqBrokerHostPort", properties.getProperty("com.bt.jms.serverport"))
+				myConnFactory.setProperty("imqDefaultUsername", properties.getProperty("com.bt.jms.username"))
+				myConnFactory.setProperty("imqDefaultPassword", properties.getProperty("com.bt.jms.password"))
+				
+                @myConn = myConnFactory.createConnection
 				@mySess = @myConn.createSession(false, Session::AUTO_ACKNOWLEDGE)
 				@myQueue = Queue.new(queuename)
 				@connectionSuccess = "TRUE"
