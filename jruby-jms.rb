@@ -16,8 +16,8 @@ module JMS
 	# Class name: QueueManager
 	# Constructor parameters (queuename, properties_file)
 	# Instance Methods:
-	# Produce(msg) returns SUCCESS if successful
-	# Consume() returns MSG=<MSG> if successful
+	# StringProduce(msg) returns SUCCESS if successful
+	# StringConsume() returns MSG=<MSG> if successful
 	# Count() returns the length of the queue if successful
 	class QueueManager
 		def initialize(queuename='QUEUENAME', properties_file='jms.properties')
@@ -38,17 +38,41 @@ module JMS
 				@connectionSuccess = "FALSE"
 			end
 		end
-		
-		def Produce(msg)
+
+        def HashMapProduce(hashmap, autoclose=TRUE)
+            begin
+                if @connectionSuccess == "TRUE" then
+                    myMsgProducer = @mySess.createProducer(@myQueue)
+                    myMapMsg = @mySess.createMapMessage()
+                    # Go through each ruby hashmap entry and assign it to the java object
+                    hashmap.each do |key, val|
+                        myMapMsg.setString(key.to_s, val.to_s)
+                    end
+                    myMsgProducer.send(myMapMsg)
+                    if autoclose == TRUE then
+                        @mySess.close
+                        @myConn.close
+                    end
+                    return "SUCCESS"
+                else
+                    return "ERR_NOCONNECTION"
+                end
+            rescue
+                return "ERR_FAILURE"
+            end
+        end
+
+		def StringProduce(msg, autoclose=TRUE)
 			begin
 				if @connectionSuccess == "TRUE"
 					myMsgProducer = @mySess.createProducer(@myQueue)
 					myTextMsg = @mySess.createTextMessage
 					myTextMsg.setText(msg)
 					myMsgProducer.send(myTextMsg)
-			
-					@mySess.close
-					@myConn.close
+			        if autoclose == TRUE then
+					    @mySess.close
+					    @myConn.close
+                    end
 					return "SUCCESS"
 				else
 					return "ERR_NOCONNECTION" # There is no connection
@@ -58,26 +82,23 @@ module JMS
 			end
 		end
 		
-		def Consume
-			begin
-				myConsumer = @mySess.createConsumer(@myQueue)
-				@myConn.start()
-				receiverobj = myConsumer.receive(1000)
-				msg = ""
-				receiverobj.methods.each { |rm| if rm == "text" then; msg=receiverobj.text; end }
-				@mySess.close
-				@myConn.close			
-				if (msg.length > 1) then
-					return "#{msg}"
-				else
-					return "ERR_NOMESSAGES"
-				end
-			rescue
-				return "ERR_FAILURE"
-			end
-		end
-		
-		def Count
+        def Consume(autoclose=TRUE)
+            myConsumer = @mySess.createConsumer(@myQueue)
+            @myConn.start()
+            receiverobj = myConsumer.receive(1000)
+            if receiverobj.respond_to? 'text'
+                msg=receiverobj.text
+            else
+                msg = receiverobj
+            end
+            if autoclose == TRUE then
+                @mySess.close
+                @myConn.close
+            end
+            return msg
+        end
+
+		def Count(autoclose=TRUE)
 			begin
 				browser = @mySess.createBrowser(@myQueue)
 				benum = browser.getEnumeration()
@@ -86,12 +107,15 @@ module JMS
 					queue = queue + 1
 					benum.nextElement()
 				end
-				@mySess.close
-				@myConn.close			
+                if autoclose == TRUE then
+				    @mySess.close
+				    @myConn.close
+                end
 				return "#{queue}"
 			rescue
 				return "ERR_FAILURE"
 			end		
 		end
-	end
+    
+    end
 end
